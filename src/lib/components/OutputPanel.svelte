@@ -14,7 +14,7 @@
 		const eventSource = new EventSource('/events');
 
 		eventSource.addEventListener('state', (e) => {
-			const { state, exitCode } = JSON.parse(e.data);
+			const { state } = JSON.parse(e.data);
 			status = state;
 			if (status !== 'idle') {
 				outputLines = [];

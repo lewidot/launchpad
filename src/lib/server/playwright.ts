@@ -12,7 +12,7 @@ export type ProjectState = 'running-start' | 'running-pull' | 'idle';
 
 export type OutputHandler = {
 	onOutput: (chunk: string) => void;
-	onStateChange: (state: ProjectState, exitCode?: number) => void;
+	onStateChange: (state: ProjectState) => void;
 };
 
 const PROJECT_DIR = './pw-project';
@@ -81,13 +81,13 @@ export class PlaywrightRunner {
 
 		proc.on('error', (err) => {
 			console.error('[playwright] spawn error:', err);
-			this.handler.onStateChange('idle', 1);
+			this.handler.onStateChange('idle');
 			this.proc = null;
 		});
 
 		proc.on('close', (code) => {
 			console.log('[playwright] exited with code:', code);
-			this.handler.onStateChange('idle', code ?? undefined);
+			this.handler.onStateChange('idle');
 			this.proc = null;
 		});
 	}
