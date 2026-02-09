@@ -52,6 +52,7 @@
 						placeholder="e.g. @smoke"
 						bind:value={filter}
 						disabled={isBusy}
+						autocomplete="off"
 					/>
 				</div>
 			</Card.Content>
