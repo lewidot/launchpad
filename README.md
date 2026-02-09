@@ -5,10 +5,10 @@ A web platform for managing and running Playwright tests.
 ## Development
 
 ```sh
-bun run dev
+bun --bun run dev
 
 # or start the server and open the app in a new browser tab
-bun run dev -- --open
+bun --bun run dev -- --open
 ```
 
 ## Building
