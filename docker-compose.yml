@@ -1,0 +1,9 @@
+services:
+  launchpad:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - PLAYWRIGHT_REPO_URL=https://github.com/lewidot/playwright-project
+      - ORIGIN=http://localhost:3000
