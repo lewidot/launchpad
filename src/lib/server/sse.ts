@@ -2,7 +2,7 @@ export class SSEBroker {
 	private clients = new Map<string, WritableStreamDefaultWriter<Uint8Array>>();
 	private encoder = new TextEncoder();
 	private seq = 0;
-	private heartbeatInterval: Timer;
+	private heartbeatInterval: NodeJS.Timeout;
 
 	constructor() {
 		this.heartbeatInterval = setInterval(() => {

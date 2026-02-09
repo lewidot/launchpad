@@ -1,104 +1,86 @@
-import { ok, err, Result } from 'neverthrow';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { ok, err, type Result } from 'neverthrow';
+import type { Readable } from 'node:stream';
 
-type OutputHandler = {
+export type OutputHandler = {
 	onOutput: (chunk: string) => void;
 	onStateChange: (state: 'running-start' | 'running-pull' | 'idle', exitCode?: number) => void;
 };
 
-export class PlaywrightRunner {
-	private proc: Bun.ReadableSubprocess | null = null;
+const PROJECT_DIR = './pw-project';
 
-	constructor(
-		private handler: OutputHandler,
-		private projectDir = './pw-project'
-	) {}
+export class PlaywrightRunner {
+	private proc: ChildProcess | null = null;
+
+	constructor(private handler: OutputHandler) {}
 
 	get isRunning() {
 		return this.proc !== null;
 	}
 
 	start(filter?: string): Result<void, string> {
-		if (this.proc) {
-			console.log('[playwright] already running');
-			return err('Already running');
-		}
+		if (this.proc) return err('Already running');
 
-		console.log('[playwright] starting process');
 		const args = [
-			'npx',
 			'playwright',
 			'test',
 			'--reporter',
 			'list',
 			...(filter ? ['--grep', filter] : [])
 		];
-		this.proc = Bun.spawn(args, {
-			cwd: this.projectDir,
-			stdout: 'pipe',
-			stderr: 'pipe'
+
+		this.proc = spawn('npx', args, {
+			cwd: PROJECT_DIR,
+			stdio: ['ignore', 'pipe', 'pipe']
 		});
 
-		console.log('[playwright] spawned pid:', this.proc.pid);
 		this.handler.onStateChange('running-start');
-		this.handler.onOutput(`${args.join(' ')}\n`);
-		this.streamOutput('stdout', this.proc.stdout);
-		this.streamOutput('stderr', this.proc.stderr);
-
-		// Await the promise for when the process exits and then cleanup state.
-		this.proc.exited.then((code) => {
-			console.log('[playwright] exited with code:', code);
-			this.handler.onStateChange('idle', code);
-			this.proc = null;
-		});
-
+		this.handler.onOutput(`npx ${args.join(' ')}\n`);
+		this.wireStreams();
 		return ok();
 	}
 
-	pull() {
-		if (this.proc) {
-			console.log('[playwright] already running');
-			return err('Already running');
-		}
+	pull(): Result<void, string> {
+		if (this.proc) return err('Already running');
 
-		console.log('[playwright] pulling latest changes');
-		const args = ['sh', '-c', 'git pull && npm install --include=dev && npx playwright install'];
-		this.proc = Bun.spawn(args, {
-			cwd: this.projectDir,
-			stdout: 'pipe',
-			stderr: 'pipe',
+		const cmd = 'git pull && npm install --include=dev && npx playwright install';
+
+		this.proc = spawn('sh', ['-c', cmd], {
+			cwd: PROJECT_DIR,
+			stdio: ['ignore', 'pipe', 'pipe'],
 			env: { ...process.env, CI: 'true' }
 		});
 
 		this.handler.onStateChange('running-pull');
-		this.handler.onOutput(`${args.join(' ')}\n`);
-		this.streamOutput('stdout', this.proc.stdout);
-		this.streamOutput('stderr', this.proc.stderr);
-
-		// Await the promise for when the process exits and then cleanup state.
-		this.proc.exited.then((code) => {
-			console.log('[playwright] exited with code:', code);
-			this.handler.onStateChange('idle', code);
-			this.proc = null;
-		});
-
+		this.handler.onOutput(`${cmd}\n`);
+		this.wireStreams();
 		return ok();
 	}
 
-	private async streamOutput(name: string, stream: ReadableStream<Uint8Array>) {
-		console.log(`[playwright] starting to read ${name}`);
-		const reader = stream.getReader();
-		const decoder = new TextDecoder();
+	private wireStreams() {
+		const proc = this.proc!;
 
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) {
-				console.log(`[playwright] ${name} done`);
-				break;
-			}
-			if (value) {
-				const text = decoder.decode(value, { stream: true });
-				this.handler.onOutput(text);
-			}
+		if (proc.stdout) this.streamOutput('stdout', proc.stdout);
+		if (proc.stderr) this.streamOutput('stderr', proc.stderr);
+
+		proc.on('error', (err) => {
+			console.error('[playwright] spawn error:', err);
+			this.handler.onStateChange('idle', 1);
+			this.proc = null;
+		});
+
+		proc.on('close', (code) => {
+			console.log('[playwright] exited with code:', code);
+			this.handler.onStateChange('idle', code ?? undefined);
+			this.proc = null;
+		});
+	}
+
+	private async streamOutput(name: string, stream: Readable) {
+		stream.setEncoding('utf-8');
+		for await (const chunk of stream) {
+			this.handler.onOutput(chunk as string);
 		}
+		console.log(`[playwright] ${name} done`);
 	}
 }
