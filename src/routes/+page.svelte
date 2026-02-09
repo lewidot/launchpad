@@ -1,18 +1,26 @@
 <script lang="ts">
+	import { isHttpError } from '@sveltejs/kit';
 	import { startTests, pullLatest } from '$lib/remote/playwright.remote';
 
 	let filter = $state('');
 	let message = $state('');
-	let status = $state<{ state: string; output: string } | null>(null);
 
 	async function runTests() {
-		const result = await startTests(filter || undefined);
-		message = result.ok ? 'Tests started' : result.error;
+		try {
+			await startTests({ filter: filter || undefined });
+			message = 'Tests started';
+		} catch (e) {
+			message = isHttpError(e) ? e.body.message : 'Failed to start tests';
+		}
 	}
 
 	async function pull() {
-		const result = await pullLatest();
-		message = result.ok ? 'Pull started' : result.error;
+		try {
+			await pullLatest();
+			message = 'Pull started';
+		} catch (e) {
+			message = isHttpError(e) ? e.body.message : 'Failed to pull';
+		}
 	}
 </script>
 
@@ -23,10 +31,5 @@
 
 	{#if message}
 		<p>{message}</p>
-	{/if}
-
-	{#if status}
-		<p>State: {status.state}</p>
-		<pre>{status.output}</pre>
 	{/if}
 </div>
