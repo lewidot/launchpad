@@ -4,6 +4,8 @@ A web platform for managing and running Playwright tests.
 
 ## Development
 
+Clone the playwright repository into the `pw-project` directory and install its dependencies.
+
 ```sh
 bun --bun run dev
 
