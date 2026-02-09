@@ -37,7 +37,7 @@ export class PlaywrightRunner {
 			...(options.filter ? ['--grep', options.filter] : [])
 		];
 
-		console.log('[playwright] starting process');
+		console.log(`[playwright] filter=${options.filter}`);
 		this.proc = spawn(cmdPath, args, {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe']
