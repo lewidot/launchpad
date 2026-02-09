@@ -5,15 +5,6 @@ import { SSEBroker } from '$lib/server/sse';
 export const broker = new SSEBroker();
 
 export const runner = new PlaywrightRunner({
-	onOutput: (chunk) => console.log(chunk),
-	onStateChange: (state, exitCode) => {
-		console.log({ state, exitCode });
-	}
+	onOutput: (chunk) => broker.sendEvent('output', chunk),
+	onStateChange: (state, code) => broker.sendEvent('state', JSON.stringify({ state, code }))
 });
-
-// export const runner = new PlaywrightRunner({
-// 	onOutput: (chunk) => broker.sendEvent('output', chunk),
-// 	onStateChange: (state, exitCode) => {
-// 		broker.sendEvent('state', JSON.stringify({ state, exitCode }));
-// 	}
-// });
