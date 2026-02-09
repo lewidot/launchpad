@@ -18,22 +18,6 @@
 	let { status, isBusy }: Props = $props();
 
 	let filter = $state('');
-
-	async function runTests() {
-		try {
-			await startTests({ filter });
-		} catch (e) {
-			toast.error(isHttpError(e) ? e.body.message : 'Failed to start tests');
-		}
-	}
-
-	async function pullChanges() {
-		try {
-			await pullLatest();
-		} catch (e) {
-			toast.error(isHttpError(e) ? e.body.message : 'Failed to pull changes');
-		}
-	}
 </script>
 
 <Tabs.Root value="tests" class="w-64 shrink-0">
@@ -57,7 +41,17 @@
 				</div>
 			</Card.Content>
 			<Card.Footer>
-				<Button onclick={runTests} disabled={isBusy} class="w-full">
+				<Button
+					onclick={async () => {
+						try {
+							await startTests({ filter });
+						} catch (error) {
+							toast.error(isHttpError(error) ? error.body.message : 'Failed to start tests');
+						}
+					}}
+					disabled={isBusy}
+					class="w-full"
+				>
 					{#if status === 'running-start'}
 						<Loader2Icon class="animate-spin" />
 						Running...
@@ -76,7 +70,18 @@
 				</p>
 			</Card.Content>
 			<Card.Footer>
-				<Button onclick={pullChanges} disabled={isBusy} variant="outline" class="w-full">
+				<Button
+					onclick={async () => {
+						try {
+							await pullLatest();
+						} catch (error) {
+							toast.error(isHttpError(error) ? error.body.message : 'Failed to pull changes');
+						}
+					}}
+					disabled={isBusy}
+					variant="outline"
+					class="w-full"
+				>
 					{#if status === 'running-pull'}
 						<Loader2Icon class="animate-spin" />
 						Pulling changes...
