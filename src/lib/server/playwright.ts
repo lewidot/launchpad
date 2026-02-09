@@ -8,10 +8,11 @@ export const StartSchema = v.object({
 });
 
 export type StartOptions = v.InferInput<typeof StartSchema>;
+export type ProjectState = 'running-start' | 'running-pull' | 'idle';
 
 export type OutputHandler = {
 	onOutput: (chunk: string) => void;
-	onStateChange: (state: 'running-start' | 'running-pull' | 'idle', exitCode?: number) => void;
+	onStateChange: (state: ProjectState, exitCode?: number) => void;
 };
 
 const PROJECT_DIR = './pw-project';
@@ -36,11 +37,13 @@ export class PlaywrightRunner {
 			...(options.filter ? ['--grep', options.filter] : [])
 		];
 
+		console.log('[playwright] starting process');
 		this.proc = spawn(cmdPath, args, {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe']
 		});
 
+		console.log('[playwright] spawned pid:', this.proc.pid);
 		this.handler.onStateChange('running-start');
 		this.handler.onOutput(`${cmdPath} ${args.join(' ')}\n`);
 		this.wireStreams();
@@ -57,6 +60,7 @@ export class PlaywrightRunner {
 
 		const cmd = 'git pull && npm install --include=dev && ./node_modules/.bin/playwright install';
 
+		console.log('[playwright] pulling latest changes');
 		this.proc = spawn('sh', ['-c', cmd], {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -89,6 +93,7 @@ export class PlaywrightRunner {
 	}
 
 	private async streamOutput(name: string, stream: Readable) {
+		console.log(`[playwright] starting to read ${name}`);
 		stream.setEncoding('utf-8');
 		for await (const chunk of stream) {
 			this.handler.onOutput(chunk as string);
