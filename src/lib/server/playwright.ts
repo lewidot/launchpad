@@ -28,6 +28,7 @@ export class PlaywrightRunner {
 	start(options: StartOptions): Result<void, string> {
 		if (this.proc) return err('Already running');
 
+		const cmdPath = './node_modules/.bin/playwright';
 		const args = [
 			'test',
 			'--reporter',
@@ -35,13 +36,13 @@ export class PlaywrightRunner {
 			...(options.filter ? ['--grep', options.filter] : [])
 		];
 
-		this.proc = spawn('./node_modules/.bin/playwright', args, {
+		this.proc = spawn(cmdPath, args, {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe']
 		});
 
 		this.handler.onStateChange('running-start');
-		this.handler.onOutput(`npx ${args.join(' ')}\n`);
+		this.handler.onOutput(`${cmdPath} ${args.join(' ')}\n`);
 		this.wireStreams();
 		return ok();
 	}
