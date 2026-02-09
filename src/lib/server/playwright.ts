@@ -1,6 +1,13 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { ok, err, type Result } from 'neverthrow';
 import type { Readable } from 'node:stream';
+import * as v from 'valibot';
+
+export const StartSchema = v.object({
+	filter: v.optional(v.string())
+});
+
+export type StartOptions = v.InferInput<typeof StartSchema>;
 
 export type OutputHandler = {
 	onOutput: (chunk: string) => void;
@@ -18,18 +25,17 @@ export class PlaywrightRunner {
 		return this.proc !== null;
 	}
 
-	start(filter?: string): Result<void, string> {
+	start(options: StartOptions): Result<void, string> {
 		if (this.proc) return err('Already running');
 
 		const args = [
-			'playwright',
 			'test',
 			'--reporter',
 			'list',
-			...(filter ? ['--grep', filter] : [])
+			...(options.filter ? ['--grep', options.filter] : [])
 		];
 
-		this.proc = spawn('npx', args, {
+		this.proc = spawn('./node_modules/.bin/playwright', args, {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe']
 		});
@@ -43,12 +49,17 @@ export class PlaywrightRunner {
 	pull(): Result<void, string> {
 		if (this.proc) return err('Already running');
 
-		const cmd = 'git pull && npm install --include=dev && npx playwright install';
+		const env = { ...process.env };
+		for (const key of Object.keys(env)) {
+			if (key.toLowerCase().startsWith('npm_config_')) delete env[key];
+		}
+
+		const cmd = 'git pull && npm install --include=dev && ./node_modules/.bin/playwright install';
 
 		this.proc = spawn('sh', ['-c', cmd], {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe'],
-			env: { ...process.env, CI: 'true' }
+			env: { ...env, CI: 'true' }
 		});
 
 		this.handler.onStateChange('running-pull');
