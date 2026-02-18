@@ -32,8 +32,8 @@ export class PlaywrightRunner {
 		const cmdPath = './node_modules/.bin/playwright';
 		const args = [
 			'test',
-			'--reporter',
-			'list',
+			// '--reporter',
+			// 'list',
 			...(options.filter ? ['--grep', options.filter] : [])
 		];
 
