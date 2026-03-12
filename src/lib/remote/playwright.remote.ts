@@ -3,7 +3,7 @@ import { runner } from '$lib/server/instance';
 import { StartSchema } from '$lib/server/playwright';
 import { error } from '@sveltejs/kit';
 
-export const startTests = command(StartSchema, async (schema) => {
+export const startTestsRemote = command(StartSchema, async (schema) => {
 	const result = runner.start(schema);
 	if (result.isErr()) {
 		error(409, result.error);
@@ -11,7 +11,7 @@ export const startTests = command(StartSchema, async (schema) => {
 	return { status: 'started' };
 });
 
-export const pullLatest = command(async () => {
+export const pullLatestRemote = command(async () => {
 	const result = runner.pull();
 	if (result.isErr()) {
 		error(409, result.error);

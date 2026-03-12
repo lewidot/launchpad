@@ -4,7 +4,8 @@ import type { Readable } from 'node:stream';
 import * as v from 'valibot';
 
 export const StartSchema = v.object({
-	filter: v.optional(v.string())
+	filter: v.optional(v.string()),
+	lastFailed: v.boolean()
 });
 
 export type StartOptions = v.InferInput<typeof StartSchema>;
@@ -34,10 +35,11 @@ export class PlaywrightRunner {
 			'test',
 			// '--reporter',
 			// 'list',
-			...(options.filter ? ['--grep', options.filter] : [])
+			...(options.filter ? ['--grep', options.filter] : []),
+			...(options.lastFailed ? ['--last-failed'] : [])
 		];
 
-		console.log(`[playwright] filter=${options.filter}`);
+		console.log(`[playwright] options=${JSON.stringify(options)}`);
 		this.proc = spawn(cmdPath, args, {
 			cwd: PROJECT_DIR,
 			stdio: ['ignore', 'pipe', 'pipe']

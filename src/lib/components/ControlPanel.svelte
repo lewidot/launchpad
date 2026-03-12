@@ -8,8 +8,9 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { ProjectState } from '$lib/server/playwright';
-	import { startTests, pullLatest } from '$lib/remote/playwright.remote';
+	import { startTestsRemote, pullLatestRemote } from '$lib/remote/playwright.remote';
 	import { isHttpError } from '@sveltejs/kit';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 
 	type Props = {
 		status: ProjectState;
@@ -19,6 +20,23 @@
 	let { status, isBusy }: Props = $props();
 
 	let filter = $state('');
+	let lastFailed = $state(false);
+
+	const startTests = async () => {
+		try {
+			await startTestsRemote({ filter, lastFailed });
+		} catch (error) {
+			toast.error(isHttpError(error) ? error.body.message : 'Failed to start tests');
+		}
+	};
+
+	const pullLatest = async () => {
+		try {
+			await pullLatestRemote();
+		} catch (error) {
+			toast.error(isHttpError(error) ? error.body.message : 'Failed to pull changes');
+		}
+	};
 
 	async function downloadReport() {
 		const response = await fetch('/api/report');
@@ -48,7 +66,7 @@
 		</Tabs.List>
 		<Tabs.Content value="tests">
 			<Card.Root>
-				<Card.Content>
+				<Card.Content class="flex flex-col gap-6">
 					<div class="grid gap-2">
 						<Label for="filter">Filter</Label>
 						<Input
@@ -60,19 +78,13 @@
 							autocomplete="off"
 						/>
 					</div>
+					<div class="flex items-center gap-3">
+						<Checkbox id="last-failed" bind:checked={lastFailed} />
+						<Label for="last-failed">Only run failed tests</Label>
+					</div>
 				</Card.Content>
 				<Card.Footer>
-					<Button
-						onclick={async () => {
-							try {
-								await startTests({ filter });
-							} catch (error) {
-								toast.error(isHttpError(error) ? error.body.message : 'Failed to start tests');
-							}
-						}}
-						disabled={isBusy}
-						class="w-full"
-					>
+					<Button onclick={startTests} disabled={isBusy} class="w-full">
 						{#if status === 'running-start'}
 							<Loader2Icon class="animate-spin" />
 							Running...
@@ -91,18 +103,7 @@
 					</p>
 				</Card.Content>
 				<Card.Footer>
-					<Button
-						onclick={async () => {
-							try {
-								await pullLatest();
-							} catch (error) {
-								toast.error(isHttpError(error) ? error.body.message : 'Failed to pull changes');
-							}
-						}}
-						disabled={isBusy}
-						variant="outline"
-						class="w-full"
-					>
+					<Button onclick={pullLatest} disabled={isBusy} variant="outline" class="w-full">
 						{#if status === 'running-pull'}
 							<Loader2Icon class="animate-spin" />
 							Pulling changes...
